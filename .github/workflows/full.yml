@@ -1,0 +1,42 @@
+name: Build Offline ClawCodex Bundle
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Clone ClawCodex source
+        run: |
+          git clone https://github.com/agentforce314/clawcodex.git source
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Upgrade pip and build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build
+
+      - name: Build ClawCodex wheel
+        working-directory: source
+        run: python -m build --wheel
+
+      - name: Download all dependencies for Windows/py311
+        working-directory: source
+        run: |
+          pip download --dest dist --only-binary=:all: --platform win_amd64 --python-version 311 --implementation cp --abi cp311 dist\*.whl
+
+      - name: Show offline bundle contents
+        working-directory: source
+        run: Get-ChildItem dist\
+
+      - name: Upload offline bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: clawcodex-offline-bundle-win-py311
+          path: source/dist/*
+          retention-days: 30
